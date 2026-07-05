@@ -1,121 +1,205 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { recommendMovie } from './services/movieService'
 import './App.css'
 
+const initialForm = {
+  mood: '',
+  time: '',
+  genre: '',
+  people: '',
+}
+
+const fieldLabels = {
+  mood: 'Mood',
+  time: 'Available time',
+  genre: 'Genre',
+  people: 'Who is watching',
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [form, setForm] = useState(initialForm)
+  const [movie, setMovie] = useState(null)
+  const [errors, setErrors] = useState({})
+  const [statusMessage, setStatusMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  function handleChange(event) {
+    const { name, value } = event.target
+
+    setForm((currentForm) => ({
+      ...currentForm,
+      [name]: value,
+    }))
+
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      [name]: '',
+    }))
+  }
+
+  function validateForm() {
+    const nextErrors = {}
+
+    for (const field in form) {
+      if (!form[field].trim()) {
+        nextErrors[field] = `${fieldLabels[field]} is required.`
+      }
+    }
+
+    setErrors(nextErrors)
+
+    const missingFields = Object.keys(nextErrors)
+
+    if (missingFields.length > 0) {
+      const missingFieldLabels = missingFields
+        .map((field) => fieldLabels[field].toLowerCase())
+        .join(', ')
+
+      setStatusMessage(`Please add: ${missingFieldLabels}.`)
+      return false
+    }
+
+    setStatusMessage('')
+    return true
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+
+    if (!validateForm()) {
+      return
+    }
+
+    setIsLoading(true)
+    setMovie(null)
+    setStatusMessage('')
+
+    try {
+      const recommendation = await recommendMovie(form)
+      setMovie(recommendation)
+    } catch (error) {
+      if (error.missingFields?.length > 0) {
+        const nextErrors = Object.fromEntries(
+          error.missingFields.map((field) => [
+            field,
+            `${fieldLabels[field] || field} is required.`,
+          ]),
+        )
+        setErrors(nextErrors)
+        setStatusMessage(
+          `Please add: ${error.missingFields
+            .map((field) => fieldLabels[field]?.toLowerCase() || field)
+            .join(', ')}.`,
+        )
+      } else {
+        setStatusMessage(error.message)
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+    <main className="app-shell">
+      <section className="intro">
+        <p className="eyebrow">Movie night picker</p>
+        <h1>Find one movie that fits tonight.</h1>
+        <p>
+          Add the mood, runtime window, genre, and audience. The app will return
+          one recommendation for the whole group.
+        </p>
       </section>
 
-      <div className="ticks"></div>
+      <section className="picker-panel" aria-labelledby="form-title">
+        <form className="movie-form" onSubmit={handleSubmit} noValidate>
+          <div className="form-heading">
+            <h2 id="form-title">Tonight's setup</h2>
+            <p>All fields are required.</p>
+          </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+          <label>
+            <span>Mood</span>
+            <input
+              name="mood"
+              value={form.mood}
+              onChange={handleChange}
+              placeholder="Cozy, tense, funny"
+              aria-invalid={Boolean(errors.mood)}
+            />
+            {errors.mood && <small>{errors.mood}</small>}
+          </label>
+
+          <label>
+            <span>Available time</span>
+            <input
+              name="time"
+              value={form.time}
+              onChange={handleChange}
+              placeholder="90 minutes, 2 hours"
+              aria-invalid={Boolean(errors.time)}
+            />
+            {errors.time && <small>{errors.time}</small>}
+          </label>
+
+          <label>
+            <span>Genre</span>
+            <input
+              name="genre"
+              value={form.genre}
+              onChange={handleChange}
+              placeholder="Comedy, thriller, sci-fi"
+              aria-invalid={Boolean(errors.genre)}
+            />
+            {errors.genre && <small>{errors.genre}</small>}
+          </label>
+
+          <label>
+            <span>Who is watching</span>
+            <input
+              name="people"
+              value={form.people}
+              onChange={handleChange}
+              placeholder="Family, friends, date night"
+              aria-invalid={Boolean(errors.people)}
+            />
+            {errors.people && <small>{errors.people}</small>}
+          </label>
+
+          {statusMessage && (
+            <p className="status-message" role="alert">
+              {statusMessage}
+            </p>
+          )}
+
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Finding a movie...' : 'Get movie'}
+          </button>
+        </form>
+
+        <aside className="recommendation" aria-live="polite">
+          {movie ? (
+            <>
+              <p className="eyebrow">Recommendation</p>
+              <h2>
+                {movie.title}
+                {movie.year ? <span> ({movie.year})</span> : null}
+              </h2>
+              {movie.genre && <p className="movie-genre">{movie.genre}</p>}
+              {movie.reason && <p>{movie.reason}</p>}
+            </>
+          ) : (
+            <>
+              <p className="eyebrow">Ready when you are</p>
+              <h2>Your movie will appear here.</h2>
+              <p>
+                Fill in the four details and submit the form to get a focused
+                recommendation.
+              </p>
+            </>
+          )}
+        </aside>
       </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </main>
   )
 }
 
