@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import MovieImageCarousel from './components/MovieImageCarousel'
 import { recommendMovie } from './services/movieService'
 import './App.css'
 
@@ -185,6 +186,7 @@ function App() {
                 {movie.year ? <span> ({movie.year})</span> : null}
               </h2>
               {movie.genre && <p className="movie-genre">{movie.genre}</p>}
+              <MovieImageCarousel images={movie.images} title={movie.title} />
               {movie.reason && <p>{movie.reason}</p>}
             </>
           ) : (
